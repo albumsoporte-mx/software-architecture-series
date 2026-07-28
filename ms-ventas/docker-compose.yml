@@ -1,4 +1,4 @@
-/usuariosservices:
+services:
   ms-ventas:
     build: .
     container_name: api_ventas
