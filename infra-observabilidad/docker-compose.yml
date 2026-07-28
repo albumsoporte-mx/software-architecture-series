@@ -1,0 +1,17 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: inspector_otel
+    command: ["--config=/etc/otel-config.yaml"]
+    volumes:
+      # Inyectamos nuestro archivo de configuración dentro del contenedor
+      - ./otel/otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4318:4318" # Exponemos el puerto HTTP OTLP para que los microservicios le hablen
+    networks:
+      - red_observabilidad
+
+networks:
+  red_observabilidad:
+    external: true
+    

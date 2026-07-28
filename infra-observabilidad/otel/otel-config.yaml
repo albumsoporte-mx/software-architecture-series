@@ -1,0 +1,20 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: "0.0.0.0:4318" # El puerto oficial OTLP sobre HTTP que usarán tus MS
+
+processors:
+  batch: {} # Agrupa los datos para optimizar el rendimiento de red
+
+exporters:
+  # Exportador de depuración: imprime las trazas en la consola del colector
+  logging:
+    loglevel: debug
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]

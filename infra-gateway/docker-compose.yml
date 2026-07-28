@@ -1,0 +1,26 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik_gateway
+    command:
+      # 1. Habilitamos el Dashboard de Traefik (En dev lo dejamos inseguro para acceder fácil)
+      - "--api.insecure=true"
+      # 2. Le decimos a Traefik que use Docker como su fuente de verdad
+      - "--providers.docker=true"
+      # 3. Seguridad: No expongas contenedores a menos que se lo digamos explícitamente
+      - "--providers.docker.exposedbydefault=false"
+      # 4. Definimos el punto de entrada principal (El tráfico web entra por el puerto 80)
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"       # El puerto público por donde entrarán los usuarios
+      - "8080:8080"   # El puerto para ver nuestro panel de control (Dashboard)
+    volumes:
+      # El "espía": Le damos acceso de solo lectura al núcleo de Docker
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - red_observabilidad
+
+# Conectamos este compose a la red externa que acabas de crear en tu terminal
+networks:
+  red_observabilidad:
+    external: true

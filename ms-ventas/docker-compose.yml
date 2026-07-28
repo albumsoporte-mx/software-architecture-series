@@ -1,0 +1,25 @@
+/usuariosservices:
+  ms-ventas:
+    build: .
+    container_name: api_ventas
+    labels:
+      # 1. Rompemos el aislamiento: "¡Oye Traefik, mírame, existo!"
+      - "traefik.enable=true"
+      # 2. Definimos la ruta web por la que responderá este servicio
+      - "traefik.http.routers.ms-ventas.rule=PathPrefix(`/api/ventas`)"
+      # 3. Le indicamos a Traefik a qué puerto interno del contenedor enviar el tráfico
+      - "traefik.http.services.ms-ventas.loadbalancer.server.port=8000"
+
+      # --- LA MAGIA NUEVA (Strip Prefix) ---
+      # 1. Creamos un "middleware" que corta el prefijo de la URL
+      - "traefik.http.middlewares.strip-ventas.stripprefix.prefixes=/api/ventas"
+      # 2. Le asignamos ese middleware a nuestra ruta
+      - "traefik.http.routers.ms-ventas.middlewares=strip-ventas"
+      
+    networks:
+      - red_observabilidad
+
+# Conectamos este trabajador a la misma red de nuestro portero
+networks:
+  red_observabilidad:
+    external: true
