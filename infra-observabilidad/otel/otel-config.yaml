@@ -11,9 +11,16 @@ exporters:
   # Cambiamos "logging" por "debug" para cumplir con la nueva versión
   debug: {}
 
+  # 2. Nuevo exportador OTLP para mandar las trazas a Tempo (puerto gRPC interno 4317 de Tempo)
+  otlp/tempo:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug] # Actualizado aquí también
+      # exporters: [debug] # Actualizado aquí también
+      exporters: [debug, otlp/tempo] # ¡Enviamos a ambos lados al mismo tiempo!

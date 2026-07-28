@@ -4,14 +4,32 @@ services:
     container_name: inspector_otel
     command: ["--config=/etc/otel-config.yaml"]
     volumes:
-      # Inyectamos nuestro archivo de configuración dentro del contenedor
       - ./otel/otel-config.yaml:/etc/otel-config.yaml
     ports:
-      - "4318:4318" # Exponemos el puerto HTTP OTLP para que los microservicios le hablen
+      - "4318:4318"
+    networks:
+      - red_observabilidad
+
+  tempo:
+    image: grafana/tempo:2.3.0
+    container_name: memoria_tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo/tempo-config.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"  # Puerto HTTP para que Grafana consulte las trazas
+      - "4317:4317"  # Puerto OTLP gRPC donde el OTel Collector le mandará los datos
+    networks:
+      - red_observabilidad
+
+  loki:
+    image: grafana/loki:latest
+    container_name: memoria_loki
+    ports:
+      - "3100:3100"  # Puerto HTTP para recibir y consultar logs
     networks:
       - red_observabilidad
 
 networks:
   red_observabilidad:
     external: true
-    
