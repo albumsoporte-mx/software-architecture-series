@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from opentelemetry import trace
+from fastapi import HTTPException
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -43,3 +44,28 @@ def obtener_usuarios():
 def health_check():
     """Endpoint vital para el monitoreo."""
     return {"status": "ok", "service": "ms-usuarios"}
+
+
+
+tracer = trace.get_tracer(__name__)
+
+@app.get("/simular-error")
+def detonar_error():
+    """Endpoint para probar cómo viajan los errores críticos en la telemetría."""
+    
+    # Creamos un bloque de rastreo manual (Span)
+    with tracer.start_as_current_span("operacion_riesgosa_db") as span:
+        
+        # 1. Agregamos un log/evento interno a la traza
+        span.add_event("Iniciando conexión a la supuesta base de datos...")
+        
+        # 2. Le inyectamos atributos personalizados (etiquetas)
+        span.set_attribute("usuario.id", 999)
+        span.set_attribute("accion", "simulacion_caos")
+        
+        # 3. ¡Hacemos que todo explote!
+        span.add_event("¡Fallo detectado! Cerrando conexiones de emergencia.")
+        raise HTTPException(
+            status_code=500, 
+            detail="Error crítico: La base de datos simulada no responde."
+        )
