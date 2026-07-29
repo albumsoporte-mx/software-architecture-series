@@ -2,6 +2,8 @@ services:
   ms-usuarios:
     build: .
     container_name: api_usuarios
+    environment:
+      - OTEL_SERVICE_NAME=ms-usuarios 
     labels:
       # 1. Rompemos el aislamiento: "¡Oye Traefik, mírame, existo!"
       - "traefik.enable=true"
@@ -15,7 +17,7 @@ services:
       - "traefik.http.middlewares.strip-usuarios.stripprefix.prefixes=/api/usuarios"
       # 2. Le asignamos ese middleware a nuestra ruta
       - "traefik.http.routers.ms-usuarios.middlewares=strip-usuarios"
-      
+
     networks:
       - red_observabilidad
 
