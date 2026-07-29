@@ -30,6 +30,19 @@ services:
     networks:
       - red_observabilidad
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: centro_mando_grafana
+    ports:
+      - "3000:3000"  # Puerto web para entrar a Grafana
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - red_observabilidad
+
 networks:
   red_observabilidad:
     external: true
