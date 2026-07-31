@@ -16,11 +16,13 @@ services:
       - red_observabilidad
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.admin-auth.basicauth.users=admin:$$apr1$$PZzjmHUa$$B7hfSnvyEnBj1CXSdeC.80"
+      # El hash se obtiene desde .env para no guardar la credencial en Git.
+      - "traefik.http.middlewares.admin-auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS:?Define TRAEFIK_BASIC_AUTH_USERS in .env}"
       
       # 👑 EL TRUCO MAESTRO: Separamos el panel usando un subdominio falso (admin.localhost)
       - "traefik.http.routers.dashboard.rule=Host(`admin.localhost`)"
       - "traefik.http.routers.dashboard.service=api@internal"
+      # Todas las peticiones al dashboard deben pasar por autenticación básica.
       - "traefik.http.routers.dashboard.middlewares=admin-auth"
 
 

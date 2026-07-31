@@ -1,21 +1,28 @@
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    # Versión fija para evitar cambios inesperados en el Collector.
+    image: otel/opentelemetry-collector-contrib:0.116.1
     container_name: inspector_otel
     command: ["--config=/etc/otel-config.yaml"]
     volumes:
+      # Configuración de receptores, pipelines y exporters del Collector.
       - ./otel/otel-config.yaml:/etc/otel-config.yaml
+      # Permite leer los logs JSON que Docker genera para sus contenedores.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     ports:
       - "4318:4318"
     networks:
       - red_observabilidad
 
   tempo:
+    # Tempo recibe las trazas y las expone para que Grafana las consulte.
     image: grafana/tempo:2.3.0
     container_name: memoria_tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./tempo/tempo-config.yaml:/etc/tempo.yaml
+      # Evita perder las trazas cuando el contenedor se recrea.
+      - tempo-data:/tmp/tempo
     ports:
       - "3200:3200"  # Puerto HTTP para que Grafana consulte las trazas
       - "4317:4317"  # Puerto OTLP gRPC donde el OTel Collector le mandará los datos
@@ -23,7 +30,8 @@ services:
       - red_observabilidad
 
   loki:
-    image: grafana/loki:latest
+    # Loki almacena los logs enviados por el pipeline del Collector.
+    image: grafana/loki:3.3.2
     container_name: memoria_loki
     ports:
       - "3100:3100"  # Puerto HTTP para recibir y consultar logs
@@ -31,18 +39,27 @@ services:
       - red_observabilidad
 
   grafana:
-    image: grafana/grafana:latest
+    # Versión fija para que el entorno sea reproducible.
+    image: grafana/grafana:11.5.2
     container_name: centro_mando_grafana
     ports:
       - "3000:3000"  # Puerto web para entrar a Grafana
     volumes:
+      # Provisiona automáticamente los datasources de Tempo y Loki.
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      # Desactiva el acceso anónimo; Grafana exige autenticación.
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      # La contraseña inicial se define fuera del repositorio mediante .env.
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Define GRAFANA_ADMIN_PASSWORD in .env}
     networks:
       - red_observabilidad
 
+volumes:
+  # Volumen nombrado usado por Tempo para persistir los bloques de trazas.
+  tempo-data:
+
 networks:
   red_observabilidad:
+    # La red debe existir previamente porque se comparte con Traefik y los MS.
     external: true
