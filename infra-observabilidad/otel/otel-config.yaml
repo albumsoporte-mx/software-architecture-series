@@ -1,10 +1,31 @@
 receivers:
   otlp:
+    # Recibe las trazas HTTP enviadas por los microservicios FastAPI.
     protocols:
       http:
         endpoint: "0.0.0.0:4318"
 
+  filelog/docker:
+    # Lee stdout y stderr que Docker guarda en archivos JSON por contenedor.
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    # Solo procesa logs nuevos; no reenvía todo el histórico al reiniciar.
+    start_at: end
+    operators:
+      - type: json_parser
+        # Convierte cada línea JSON de Docker en atributos consultables.
+        parse_from: body
+        timestamp:
+          # Usa la fecha original de Docker como timestamp del registro.
+          parse_from: attributes.time
+          # Docker usa RFC3339Nano; se indica explícitamente el parser de Go.
+          layout_type: gotime
+          layout: '2006-01-02T15:04:05.999999999Z07:00'
+        # Deja como body únicamente el mensaje de log.
+        body: attributes.log
+
 processors:
+  # Agrupa registros antes de enviarlos para reducir tráfico y llamadas.
   batch: {}
 
 exporters:
@@ -13,14 +34,25 @@ exporters:
 
   # 2. Nuevo exportador OTLP para mandar las trazas a Tempo (puerto gRPC interno 4317 de Tempo)
   otlp/tempo:
+    # Envía las trazas a Tempo por OTLP/gRPC dentro de la red Docker.
     endpoint: "tempo:4317"
     tls:
       insecure: true
 
+  loki:
+    # Envía los logs procesados al endpoint de ingestión HTTP de Loki.
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
 service:
   pipelines:
     traces:
+      # Pipeline de trazas: FastAPI -> Collector -> debug y Tempo.
       receivers: [otlp]
       processors: [batch]
       # exporters: [debug] # Actualizado aquí también
       exporters: [debug, otlp/tempo] # ¡Enviamos a ambos lados al mismo tiempo!
+    logs:
+      # Pipeline de logs: archivos Docker -> Collector -> Loki.
+      receivers: [filelog/docker]
+      processors: [batch]
+      exporters: [loki]
